@@ -19,10 +19,11 @@ import ru.netology.statsview.ui.StatsView
         }
 
         findViewById<StatsView>(R.id.statsView).data = listOf(
-            0.25F,
-            0.25F,
-            0.25F,
-            0.25F
+            500F,  //0F
+            500F,  //0F
+            500F, //1500F
+            500F,
+            //1000F  //Незаполненная часть
         )
 
     }

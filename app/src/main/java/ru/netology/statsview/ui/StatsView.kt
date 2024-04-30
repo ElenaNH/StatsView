@@ -30,6 +30,12 @@ class StatsView @JvmOverloads constructor(
     private var lineWidth = dp(context, 5)
     private var colors = emptyList<Int>()
 
+    // Прозрачный цвет (можно совсем ноль или чуть гуще)
+    private val transparentColor = 0x01CCCCCC.toInt()
+    private val undefinedColor = -1
+    private var firstColor: Int = undefinedColor
+    private var firstAngle: Float = -1F
+
     init {
         context.withStyledAttributes(attributeSet, R.styleable.StatsView) {
             textSize = getDimension(R.styleable.StatsView_textSize, textSize)
@@ -40,15 +46,38 @@ class StatsView @JvmOverloads constructor(
                 getColor(R.styleable.StatsView_color2, generateRandomColor()),
                 getColor(R.styleable.StatsView_color3, generateRandomColor()),
                 getColor(R.styleable.StatsView_color4, generateRandomColor()),
+                transparentColor
             )
         }
     }
 
     var data: List<Float> = emptyList()
         set(value) {
-            field = value
+            // У нас 4 цвета; если передаем пять углов, то последний - пустая дуга
+            // Если меньше 4 цветов - то это нулевые углы, включая и пустой нулевой угол
+            // Шестое и остальные числа игнорируем
+            val revisedValue = List(5) {
+                value.getOrElse(it) { 0F }
+            }
+            revisedValue.forEachIndexed { index, datum ->
+                if (firstColor == undefinedColor)
+                    if (datum != 0F) {
+                        firstColor = colors.getOrElse(index) { undefinedColor }
+                        firstAngle = datum
+                    }
+            }
+            if (firstColor == undefinedColor) { // Не нашли ненулевых дуг
+                firstColor = transparentColor
+                firstAngle = 0F
+            }
+
+            field = calcListProportion(revisedValue)
             invalidate()  // данный метод спровоцирует вызов функции onDraw()
         }
+
+    private val totalDataProportion: Float
+        get() = if (data.isEmpty()) 0F else data.sum() - data.last()
+
     private var radius = 0F
     private var center = PointF()
     private var oval = RectF()
@@ -86,9 +115,10 @@ class StatsView @JvmOverloads constructor(
         /* Уберем функцию super.onDraw(canvas), поскольку в ней ничего не происходит */
 
         // Просто черный круг
-        //canvas.drawCircle(center.x, center.y, radius, paint)
+        // canvas.drawCircle(center.x, center.y, radius, paint)
 
-        // Многоцветный круг с процентной отрисовкой случайными цветами (цветов столько, сколько аргументов передано)
+        // Многоцветный круг с процентной отрисовкой разными цветами, взятыми из макета
+        // либо случайных (цветов столько, сколько параметров в макете, а также прозрачный)
         if (data.isEmpty()) {
             return
         }
@@ -96,14 +126,25 @@ class StatsView @JvmOverloads constructor(
         var startAngle = -90F
         data.forEachIndexed { index, datum ->
             val angle = 360F * datum
-            paint.color = colors.getOrElse(index) { generateRandomColor() } // При отсутствии элемента будет случайный цвет
+            paint.color =
+                colors.getOrElse(index) { generateRandomColor() } // При отсутствии элемента будет случайный цвет
             canvas.drawArc(oval, startAngle, angle, false, paint)
             // Изменим стартовый угол, чтобы следующий кусочек дуги начать с конца ранее нарисованного
             startAngle += angle
         }
 
+
+        // Dot - Подъем начала первой дуги над наслоившейся последней дугой
+        // Мне не нравится идея закрашивать наслоение кружочком (= точкой)
+        // Уж лучше малой частью первой дуги и ее же цветом (минимум от 1 градуса и полдуги)
+// TODO - вдруг кто-то догадается делать нулевую первую дугу - вторую будем наслаивать???
+        startAngle = -90F  // Восстанавливаем только верхнее наслоение
+        val angle = listOf(1F, 360F * 0.5F * firstAngle).min()
+        paint.color = firstColor
+        canvas.drawArc(oval, startAngle, angle, false, paint)
+
         canvas.drawText(
-            "%.2f%%".format(data.sum() * 100), // Доля переводится в проценты и форматируется
+            "%.2f%%".format(totalDataProportion * 100), // Доля переводится в проценты и форматируется
             center.x,
             center.y + textPaint.textSize / 4, // смещаем низ текста чуть ниже центра
             textPaint
@@ -111,4 +152,10 @@ class StatsView @JvmOverloads constructor(
     }
 
     private fun generateRandomColor() = Random.nextInt(0xFF000000.toInt(), 0xFFFFFFFF.toInt())
+    private fun calcListProportion(inputList: List<Float>): List<Float> {
+        val listSum = inputList.sum()
+        val zeroList = List(inputList.count()) { 0F }
+        return if (listSum == 0F) zeroList //listOf(0F, 0F, 0F, 0F, 0F)
+        else inputList.map { (it.toFloat() / listSum) }
+    }
 }
