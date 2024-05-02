@@ -75,6 +75,24 @@ class StatsView @JvmOverloads constructor(
             invalidate()  // данный метод спровоцирует вызов функции onDraw()
         }
 
+    val minFilling = 0
+    val maxFilling = 100
+    val initStartAngle = -90F
+    var filling = maxFilling
+        set(value) {
+            // TODO - надо выкидывать ошибку для кривых процентов
+            val revisedValue =
+                if (value < minFilling) minFilling else if (value > maxFilling) maxFilling else value
+            field = revisedValue
+            invalidate()  // данный метод спровоцирует вызов функции onDraw()
+        }
+
+    private val fillingProportion: Float
+        get() = filling.toFloat() / maxFilling.toFloat()
+
+    private val fillingAppendix: Float
+        get() = 1F - fillingProportion
+
     private val totalDataProportion: Float
         get() = if (data.isEmpty()) 0F else data.sum() - data.last()
 
@@ -123,25 +141,38 @@ class StatsView @JvmOverloads constructor(
             return
         }
 
-        var startAngle = -90F
+        var startAngle = initStartAngle
         data.forEachIndexed { index, datum ->
-            val angle = 360F * datum
+            val angle = 360F * fillingProportion * datum
             paint.color =
                 colors.getOrElse(index) { generateRandomColor() } // При отсутствии элемента будет случайный цвет
             canvas.drawArc(oval, startAngle, angle, false, paint)
             // Изменим стартовый угол, чтобы следующий кусочек дуги начать с конца ранее нарисованного
             startAngle += angle
+
+            if (fillingAppendix > 0) {
+                val angle2 = 360F * fillingAppendix * datum
+                paint.color = transparentColor
+                canvas.drawArc(oval, startAngle, angle2, false, paint)
+                // Изменим стартовый угол, чтобы следующий кусочек дуги начать с конца ранее нарисованного
+                startAngle += angle2
+            }
+
         }
 
 
         // Dot - Подъем начала первой дуги над наслоившейся последней дугой
         // Мне не нравится идея закрашивать наслоение кружочком (= точкой)
         // Уж лучше малой частью первой дуги и ее же цветом (минимум от 1 градуса и полдуги)
-// TODO - вдруг кто-то догадается делать нулевую первую дугу - вторую будем наслаивать???
-        startAngle = -90F  // Восстанавливаем только верхнее наслоение
-        val angle = listOf(1F, 360F * 0.5F * firstAngle).min()
-        paint.color = firstColor
-        canvas.drawArc(oval, startAngle, angle, false, paint)
+        // Если кто-то догадается делать нулевую первую дугу - вторую будем наслаивать!
+        val overlapArc = true
+        if (overlapArc) {
+            startAngle = initStartAngle  // Восстанавливаем только верхнее наслоение
+            val angle = listOf(1F, 360F * fillingProportion * 0.5F * firstAngle).min()
+            paint.color = firstColor
+            canvas.drawArc(oval, startAngle, angle, false, paint)
+            // Здесь НЕ требуется дорисовывать незаполненную часть дуги
+        }
 
         canvas.drawText(
             "%.2f%%".format(totalDataProportion * 100), // Доля переводится в проценты и форматируется
