@@ -21,6 +21,7 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
+        // ЗАПУСК анимации при помощи присвоения новых данных полю data
         val view = findViewById<StatsView>(R.id.statsView)
         view.data = listOf(
             500F,  //0F
@@ -29,15 +30,15 @@ class MainActivity : AppCompatActivity() {
             500F,
             //1000F  //Незаполненная часть
         )
-        view.filling = 80
 
         val textViewLabel = findViewById<TextView>(R.id.textViewLabel)
         val baseLabel = getString(R.string.animations_testing)
 
+        // ЗАПУСК анимации, задаваемой файлом animation.xml
         // После запуска анимации можно также запустить слушателя этой анимации
         // при помощи добавления внутрь функции apply
-        view.startAnimation(
-            AnimationUtils.loadAnimation(this, R.anim.animation)
+        /*view.startAnimation(
+            AnimationUtils.loadAnimation(this, R.anim.animation) //animation.xml
                 .apply {
                     setAnimationListener(object : Animation.AnimationListener {
                         override fun onAnimationStart(p0: Animation?) {
@@ -54,7 +55,7 @@ class MainActivity : AppCompatActivity() {
 
                     })
                 }
-        )
+        )*/
 
 
     }

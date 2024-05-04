@@ -1,5 +1,6 @@
 package ru.netology.statsview.ui
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -7,6 +8,7 @@ import android.graphics.PointF
 import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
+import android.view.animation.LinearInterpolator
 import androidx.core.content.withStyledAttributes
 import ru.netology.statsview.R
 import ru.netology.statsview.utils.AndroidUtils.dp
@@ -34,7 +36,8 @@ class StatsView @JvmOverloads constructor(
     private val transparentColor = 0x01CCCCCC.toInt()
     private val undefinedColor = -1
     private var firstColor: Int = undefinedColor
-    private var firstAngle: Float = -1F
+    private var firstAngle: Float = -1F  // угол первой ненулевой дуги
+    private val initAngle: Float = -90F // старт рисования первой дуги (даже если она нулевая)
 
     init {
         context.withStyledAttributes(attributeSet, R.styleable.StatsView) {
@@ -51,6 +54,8 @@ class StatsView @JvmOverloads constructor(
         }
     }
 
+    var progress = 0F
+    private var valueAnimator: ValueAnimator? = null
     var data: List<Float> = emptyList()
         set(value) {
             // У нас 4 цвета; если передаем пять углов, то последний - пустая дуга
@@ -72,26 +77,9 @@ class StatsView @JvmOverloads constructor(
             }
 
             field = calcListProportion(revisedValue)
-            invalidate()  // данный метод спровоцирует вызов функции onDraw()
+            //invalidate()  // данный метод спровоцирует вызов функции onDraw()
+            update()    // Внутри будет вызван invalidate()
         }
-
-    val minFilling = 0
-    val maxFilling = 100
-    val initStartAngle = -90F
-    var filling = maxFilling
-        set(value) {
-            // TODO - надо выкидывать ошибку для кривых процентов
-            val revisedValue =
-                if (value < minFilling) minFilling else if (value > maxFilling) maxFilling else value
-            field = revisedValue
-            invalidate()  // данный метод спровоцирует вызов функции onDraw()
-        }
-
-    private val fillingProportion: Float
-        get() = filling.toFloat() / maxFilling.toFloat()
-
-    private val fillingAppendix: Float
-        get() = 1F - fillingProportion
 
     private val totalDataProportion: Float
         get() = if (data.isEmpty()) 0F else data.sum() - data.last()
@@ -116,6 +104,7 @@ class StatsView @JvmOverloads constructor(
         textAlign = Paint.Align.CENTER
     }
 
+
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         /* Надо убрать super.onSizeChanged(w, h, oldw, oldh), т.к.
         реализация по умолчанию ничего полезного не делает */
@@ -132,32 +121,27 @@ class StatsView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         /* Уберем функцию super.onDraw(canvas), поскольку в ней ничего не происходит */
 
-        // Просто черный круг
-        // canvas.drawCircle(center.x, center.y, radius, paint)
-
-        // Многоцветный круг с процентной отрисовкой разными цветами, взятыми из макета
-        // либо случайных (цветов столько, сколько параметров в макете, а также прозрачный)
         if (data.isEmpty()) {
             return
         }
 
-        var startAngle = initStartAngle
+         // Просто незаполненный круг
+        // (например, если захотим, чтобы он был полупрозрачным, то это подойдет)
+        paint.color = transparentColor
+         canvas.drawCircle(center.x, center.y, radius, paint)
+
+        // Многоцветный круг с процентной отрисовкой разными цветами, взятыми из макета
+        // либо случайных (цветов столько, сколько параметров в макете, а также прозрачный)
+
+        var startAngle = initAngle //-90F
         data.forEachIndexed { index, datum ->
-            val angle = 360F * fillingProportion * datum
+            val angle = 360F * datum
             paint.color =
                 colors.getOrElse(index) { generateRandomColor() } // При отсутствии элемента будет случайный цвет
-            canvas.drawArc(oval, startAngle, angle, false, paint)
+            // Умножение на progress дает нам неполную дугу (полная, если progress=1F)
+            canvas.drawArc(oval, startAngle, angle * progress, false , paint)
             // Изменим стартовый угол, чтобы следующий кусочек дуги начать с конца ранее нарисованного
             startAngle += angle
-
-            if (fillingAppendix > 0) {
-                val angle2 = 360F * fillingAppendix * datum
-                paint.color = transparentColor
-                canvas.drawArc(oval, startAngle, angle2, false, paint)
-                // Изменим стартовый угол, чтобы следующий кусочек дуги начать с конца ранее нарисованного
-                startAngle += angle2
-            }
-
         }
 
 
@@ -167,11 +151,10 @@ class StatsView @JvmOverloads constructor(
         // Если кто-то догадается делать нулевую первую дугу - вторую будем наслаивать!
         val overlapArc = true
         if (overlapArc) {
-            startAngle = initStartAngle  // Восстанавливаем только верхнее наслоение
-            val angle = listOf(1F, 360F * fillingProportion * 0.5F * firstAngle).min()
+            startAngle = initAngle  // Восстанавливаем только наслоение конца на начало
+            val angle = listOf(1F, 360F * 0.5F * firstAngle).min()
             paint.color = firstColor
-            canvas.drawArc(oval, startAngle, angle, false, paint)
-            // Здесь НЕ требуется дорисовывать незаполненную часть дуги
+            canvas.drawArc(oval, startAngle, angle * progress, false, paint)
         }
 
         canvas.drawText(
@@ -189,4 +172,27 @@ class StatsView @JvmOverloads constructor(
         return if (listSum == 0F) zeroList //listOf(0F, 0F, 0F, 0F, 0F)
         else inputList.map { (it.toFloat() / listSum) }
     }
+
+    // update()
+    private fun update() {
+        // Вычищаем предыдущую анимацию (она могла еще не закончиться)
+        valueAnimator?.let {
+            it.removeAllListeners()
+            it.cancel()
+        }
+        progress = 0F
+        // предыдущая анимация вычищена
+
+        valueAnimator = ValueAnimator.ofFloat(0F, 1F).apply {
+            addUpdateListener { anim ->
+                progress = anim.animatedValue as Float
+                invalidate()  // данный метод спровоцирует вызов функции onDraw()
+            }
+            duration = 5000  //500
+            interpolator = LinearInterpolator()
+        }.also {
+            it.start()
+        }
+    }
+    // end of update
 }

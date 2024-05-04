@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <set xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Если не указать duration, анимация не будет проигрываться -->
+    <!-- ИЗНАЧАЛЬНО в лекции предлагалось duration=startOffset = 300 -->
     <scale
         android:duration="1000"
         android:fromXScale="1.0"
