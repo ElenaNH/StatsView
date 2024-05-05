@@ -119,27 +119,30 @@ class StatsView @JvmOverloads constructor(
     }
 
     override fun onDraw(canvas: Canvas) {
-        /* Уберем функцию super.onDraw(canvas), поскольку в ней ничего не происходит */
 
         if (data.isEmpty()) {
             return
         }
 
-         // Просто незаполненный круг
+        // Просто незаполненный круг - имеет смысл при наличии незаполненной части и при анимации
         // (например, если захотим, чтобы он был полупрозрачным, то это подойдет)
         paint.color = transparentColor
-         canvas.drawCircle(center.x, center.y, radius, paint)
+        canvas.drawCircle(center.x, center.y, radius, paint)
 
         // Многоцветный круг с процентной отрисовкой разными цветами, взятыми из макета
         // либо случайных (цветов столько, сколько параметров в макете, а также прозрачный)
 
         var startAngle = initAngle //-90F
+        val targetAngle = 360F * progress
         data.forEachIndexed { index, datum ->
-            val angle = 360F * datum
+            val restAngle = targetAngle - startAngle
+            if (restAngle <= 0F) return@forEachIndexed
+            val angle = min(restAngle, 360F * datum)
+
             paint.color =
                 colors.getOrElse(index) { generateRandomColor() } // При отсутствии элемента будет случайный цвет
             // Умножение на progress дает нам неполную дугу (полная, если progress=1F)
-            canvas.drawArc(oval, startAngle, angle * progress, false , paint)
+            canvas.drawArc(oval, startAngle, angle, false, paint)
             // Изменим стартовый угол, чтобы следующий кусочек дуги начать с конца ранее нарисованного
             startAngle += angle
         }
@@ -152,9 +155,9 @@ class StatsView @JvmOverloads constructor(
         val overlapArc = true
         if (overlapArc) {
             startAngle = initAngle  // Восстанавливаем только наслоение конца на начало
-            val angle = listOf(1F, 360F * 0.5F * firstAngle).min()
+            val angle = listOf(1F, 0.5F * 360F * min(progress, firstAngle)).min()
             paint.color = firstColor
-            canvas.drawArc(oval, startAngle, angle * progress, false, paint)
+            canvas.drawArc(oval, startAngle, angle, false, paint)
         }
 
         canvas.drawText(
@@ -173,7 +176,7 @@ class StatsView @JvmOverloads constructor(
         else inputList.map { (it.toFloat() / listSum) }
     }
 
-    // update()
+
     private fun update() {
         // Вычищаем предыдущую анимацию (она могла еще не закончиться)
         valueAnimator?.let {
@@ -183,7 +186,8 @@ class StatsView @JvmOverloads constructor(
         progress = 0F
         // предыдущая анимация вычищена
 
-        valueAnimator = ValueAnimator.ofFloat(0F, 1F).apply {
+        // valueAnimator = ValueAnimator.ofFloat(0F, 1F) - это от 0 до 100%
+        valueAnimator = ValueAnimator.ofFloat(0F, totalDataProportion).apply {
             addUpdateListener { anim ->
                 progress = anim.animatedValue as Float
                 invalidate()  // данный метод спровоцирует вызов функции onDraw()
