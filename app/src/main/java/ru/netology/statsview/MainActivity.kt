@@ -31,13 +31,13 @@ class MainActivity : AppCompatActivity() {
             //1000F  //Незаполненная часть
         )
 
-        val textViewLabel = findViewById<TextView>(R.id.textViewLabel)
+/*        val textViewLabel = findViewById<TextView>(R.id.textViewLabel)
         val baseLabel = getString(R.string.animations_testing)
 
         // ЗАПУСК анимации, задаваемой файлом animation.xml
         // После запуска анимации можно также запустить слушателя этой анимации
         // при помощи добавления внутрь функции apply
-        /*view.startAnimation(
+        view.startAnimation(
             AnimationUtils.loadAnimation(this, R.anim.animation) //animation.xml
                 .apply {
                     setAnimationListener(object : Animation.AnimationListener {

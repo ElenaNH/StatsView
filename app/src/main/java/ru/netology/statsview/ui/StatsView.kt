@@ -133,7 +133,7 @@ class StatsView @JvmOverloads constructor(
         // Многоцветный круг с процентной отрисовкой разными цветами, взятыми из макета
         // либо случайных (цветов столько, сколько параметров в макете, а также прозрачный)
 
-        var startAngle = initAngle //-90F
+        var startAngle = initAngle + 360F * progress //-90F
         data.forEachIndexed { index, datum ->
             val angle = 360F * datum
             paint.color =
@@ -151,7 +151,7 @@ class StatsView @JvmOverloads constructor(
         // Если кто-то догадается делать нулевую первую дугу - вторую будем наслаивать!
         val overlapArc = true
         if (overlapArc) {
-            startAngle = initAngle  // Восстанавливаем только наслоение конца на начало
+            startAngle = initAngle + 360F * progress  // Восстанавливаем только наслоение конца на начало
             val angle = listOf(1F, 360F * 0.5F * firstAngle).min()
             paint.color = firstColor
             canvas.drawArc(oval, startAngle, angle * progress, false, paint)
@@ -188,7 +188,7 @@ class StatsView @JvmOverloads constructor(
                 progress = anim.animatedValue as Float
                 invalidate()  // данный метод спровоцирует вызов функции onDraw()
             }
-            duration = 5000  //500
+            duration = 3000  //500
             interpolator = LinearInterpolator()
         }.also {
             it.start()
