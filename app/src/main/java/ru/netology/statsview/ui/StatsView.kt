@@ -31,7 +31,7 @@ class StatsView @JvmOverloads constructor(
     private var colors = emptyList<Int>()
 
     // Прозрачный цвет (можно совсем ноль или чуть гуще)
-    private val transparentColor = 0x01CCCCCC.toInt()
+    private val transparentColor = 0x44CCCCCC.toInt()  //0x01CCCCCC.toInt()
     private val undefinedColor = -1
     private var firstColor: Int = undefinedColor
     private var firstAngle: Float = -1F
@@ -112,10 +112,15 @@ class StatsView @JvmOverloads constructor(
     }
 
     override fun onDraw(canvas: Canvas) {
-        /* Уберем функцию super.onDraw(canvas), поскольку в ней ничего не происходит */
 
-        // Просто черный круг
-        // canvas.drawCircle(center.x, center.y, radius, paint)
+        if (data.isEmpty()) {
+            return
+        }
+
+        // Просто незаполненный круг - имеет смысл при наличии незаполненной части и при анимации
+        // (например, если захотим, чтобы он был полупрозрачным, то это подойдет)
+        paint.color = transparentColor
+        canvas.drawCircle(center.x, center.y, radius, paint)
 
         // Многоцветный круг с процентной отрисовкой разными цветами, взятыми из макета
         // либо случайных (цветов столько, сколько параметров в макете, а также прозрачный)
