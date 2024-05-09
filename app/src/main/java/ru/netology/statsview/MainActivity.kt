@@ -14,6 +14,8 @@ import ru.netology.statsview.ui.StatsView
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Нижеследующего кода нет в примере для Layouttransition (включая и setOnApplyWindowInsetsListener)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
@@ -24,6 +26,7 @@ class MainActivity : AppCompatActivity() {
 
 
         // Решили, что начальные данные будем заполнять в самом элементе
+        // Так удобнее для теста анимации
         /*val view = findViewById<StatsView>(R.id.statsView)
         view.data = listOf(
             500F,  //0F

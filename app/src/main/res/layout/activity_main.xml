@@ -21,7 +21,7 @@
         android:id="@+id/goButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:gravity="bottom|center_horizontal"
+        android:layout_gravity="bottom|center_horizontal"
         android:text="@string/go" />
 
 </FrameLayout>
