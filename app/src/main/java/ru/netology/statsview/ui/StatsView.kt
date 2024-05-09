@@ -48,10 +48,22 @@ class StatsView @JvmOverloads constructor(
                 getColor(R.styleable.StatsView_color4, generateRandomColor()),
                 transparentColor
             )
+
+            // Если не задать это при инициализации, будет только полкруга
+            firstColor = colors[0] // При инициализации уверены, что дуга ненулевая
+            firstAngle = 1F // При инициализации знаем, что дуга ненулевая
+
         }
     }
 
-    var data: List<Float> = emptyList()
+    //var data: List<Float> = emptyList()
+    var data: List<Float> = listOf(  // Решили по умолчанию делать непустой список
+        0.25F,
+        0.25F,
+        0.25F,
+        0.25F,
+        0F  //Незаполненная часть
+    )
         set(value) {
             // У нас 4 цвета; если передаем пять углов, то последний - пустая дуга
             // Если меньше 4 цветов - то это нулевые углы, включая и пустой нулевой угол
