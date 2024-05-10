@@ -71,6 +71,7 @@ class StatsView @JvmOverloads constructor(
             val revisedValue = List(5) {
                 value.getOrElse(it) { 0F }
             }
+            // Перересчет firstColor - вдруг первая дуга нулевая, тогда первый цвет - это второй!
             revisedValue.forEachIndexed { index, datum ->
                 if (firstColor == undefinedColor)
                     if (datum != 0F) {

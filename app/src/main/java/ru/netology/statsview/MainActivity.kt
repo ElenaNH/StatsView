@@ -1,8 +1,10 @@
 package ru.netology.statsview
 
+import android.animation.LayoutTransition
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.BounceInterpolator
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -16,7 +18,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         // Нижеследующего кода нет в примере для Layouttransition (включая и setOnApplyWindowInsetsListener)
-        enableEdgeToEdge()
+        // Но без этого кода приложение падает
+//        enableEdgeToEdge()
         setContentView(R.layout.activity_main)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -24,25 +27,23 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-
-        // Решили, что начальные данные будем заполнять в самом элементе
-        // Так удобнее для теста анимации
-        /*val view = findViewById<StatsView>(R.id.statsView)
-        view.data = listOf(
-            500F,  //0F
-            500F,  //0F
-            500F, //1500F
-            500F,
-            //1000F  //Незаполненная часть
-        )*/
-
         val root = findViewById<ViewGroup>(R.id.root)
-        // Подготовка сцены
-        val scene = Scene.getSceneForLayout(root, R.layout.end_scene, this)
-        // Обработчик нажатия на кнопку (стартует анимацию)
-        findViewById<View>(R.id.goButton).setOnClickListener {
-            TransitionManager.go(scene)
+        // Настройка свойств для более интересной анимации
+        root.layoutTransition = LayoutTransition().apply {
+            setDuration(2_000)
+            setInterpolator(LayoutTransition.CHANGE_APPEARING, BounceInterpolator())
+
+        }
+
+        val buttonGo = findViewById<View>(R.id.buttonGo)
+
+        // Обработчик нажатия на кнопку (запускает добавление, сопровождающееся анимацией)
+        buttonGo.setOnClickListener {
+            //layoutInflater.inflate(R.layout.stats_view, root, true) // true - добавляем в группу сразу после создания
+            val view = layoutInflater.inflate(R.layout.stats_view, root, false) // false - добавляем в группу отдельно ниже
+            root.addView(view, 0) // Добавляем созданный выше view на начальную позицию
         }
 
     }
 }
+

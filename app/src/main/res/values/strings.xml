@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">StatsView</string>
     <string name="go">Go</string>
+    <string name="animations_testing">Animations TESTING</string>
 </resources>
